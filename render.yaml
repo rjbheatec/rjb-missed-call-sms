@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: rjb-missed-call-sms
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn missed_call_sms:app
+    envVars:
+      - key: YAY_USERNAME
+        sync: false
+      - key: YAY_PASSWORD
+        sync: false
+      - key: YAY_AUTH_TOKEN
+        sync: false
+      - key: SERVICEM8_API_KEY
+        sync: false
