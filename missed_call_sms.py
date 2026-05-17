@@ -1,4 +1,4 @@
-import os, json, logging, requests
+import os, json, logging, requests, time
 from flask import Flask, request, jsonify
 from datetime import datetime
 
@@ -7,6 +7,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 WHATSAPP_NUMBER = '447440416675'
+THIRTY_DAYS = 30 * 24 * 60 * 60
+
+sms_sent = {}
 
 NUMBERS = {
     '+441216306543': {'name': 'Birmingham', 'display': '0121 630 6543', 'brand': 'RJB Heating & Plumbing', 'website': 'rjbheating.com'},
@@ -22,6 +25,21 @@ def get_sms(n):
         ', visit ' + n['website'] + ' to book online, '
         'or call us back on ' + n['display']
     )
+
+def already_texted(phone):
+    last = sms_sent.get(phone)
+    if last and (time.time() - last) < THIRTY_DAYS:
+        days_ago = int((time.time() - last) / 86400)
+        logger.info('Already texted ' + phone + ' ' + str(days_ago) + ' days ago - skipping')
+        return True
+    return False
+
+def record_texted(phone):
+    sms_sent[phone] = time.time()
+    cutoff = time.time() - THIRTY_DAYS
+    for k in list(sms_sent.keys()):
+        if sms_sent[k] < cutoff:
+            del sms_sent[k]
 
 def normalise(raw):
     if not raw:
@@ -79,14 +97,18 @@ def call_ended():
     if not num:
         logger.warning('Unknown number: ' + str(called))
         return jsonify({'status': 'ignored', 'reason': 'unknown number'}), 200
+    if already_texted(caller):
+        return jsonify({'status': 'ignored', 'reason': 'texted within 30 days'}), 200
     logger.info('Inbound: ' + str(caller) + ' to ' + str(called))
     message = get_sms(num)
     ok = send_sms(called, caller, message)
+    if ok:
+        record_texted(caller)
     return jsonify({'status': 'sent' if ok else 'failed', 'branch': num['name'], 'message': message}), 200 if ok else 500
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'time': datetime.utcnow().isoformat()}), 200
+    return jsonify({'status': 'ok', 'tracked_numbers': len(sms_sent), 'time': datetime.utcnow().isoformat()}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
