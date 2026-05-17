@@ -54,10 +54,10 @@ def normalise(raw):
 
 def send_sms(from_num, to_num, message):
     reseller = os.environ.get('YAY_RESELLER', '')
-    user = os.environ.get('YAY_API_USER', '')
+    user = os.environ.get('YAY_USERNAME', '')
     pwd = os.environ.get('YAY_PASSWORD', '')
     if not reseller or not user or not pwd:
-        logger.error('Yay.com API credentials missing')
+        logger.error('Yay.com credentials missing')
         return False
     try:
         r = requests.post(
