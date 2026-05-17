@@ -71,10 +71,10 @@ NUMBERS = {
 
 def get_sms(n):
         return (
-                    'Hi, thanks for calling ' + n['brand'] + '! Gas Safe engineers. '
-                    'Boiler service from 115, CP12 from 95, all-in no hidden extras. '
-                    'Call ' + n['display'] + ', WhatsApp wa.me/' + WHATSAPP_NUMBER +
-                    ' or book at ' + n['website']
+                            'Hi, thanks for calling ' + n['brand'] + '! We are on hand to help. '
+                                'Message us anytime on WhatsApp wa.me/' + WHATSAPP_NUMBER +
+                                ', visit ' + n['website'] + ' to book online, '
+                                'or call us back on ' + n['display']
         )
     
 def normalise(raw):
