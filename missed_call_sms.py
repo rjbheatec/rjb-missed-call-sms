@@ -64,10 +64,13 @@ def call_ended():
     data = request.get_json(silent=True) or {}
     logger.info('Webhook: ' + json.dumps(data))
     call_type = data.get('call_type', '')
+    from_type = data.get('from_type', '')
     caller_raw = data.get('from', '')
     called_raw = data.get('to', '')
     if call_type != 'inbound':
         return jsonify({'status': 'ignored', 'reason': 'outbound'}), 200
+    if from_type == 'sipuser':
+        return jsonify({'status': 'ignored', 'reason': 'internal sip user'}), 200
     caller = normalise(caller_raw)
     called = normalise(called_raw)
     if not caller or 'withheld' in caller_raw.lower() or caller.startswith('+44800'):
