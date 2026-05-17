@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 WHATSAPP_NUMBER = '447440416675'
 THIRTY_DAYS = 30 * 24 * 60 * 60
-
 sms_sent = {}
 
 NUMBERS = {
@@ -54,15 +53,23 @@ def normalise(raw):
     return n
 
 def send_sms(from_num, to_num, message):
-    user = os.environ.get('YAY_USERNAME', '')
+    reseller = os.environ.get('YAY_RESELLER', '2494fd19e3584059a5fb1dbbfb68a93a')
+    user = os.environ.get('YAY_API_USER', 'admin')
     pwd = os.environ.get('YAY_PASSWORD', '')
-    if not user or not pwd:
-        logger.error('Yay.com credentials missing')
+    if not pwd:
+        logger.error('YAY_PASSWORD missing')
         return False
     try:
+        headers = {
+            'X-Auth-Reseller': reseller,
+            'X-Auth-User': user,
+            'X-Auth-Password': pwd,
+            'User-Agent': 'RJBHeating-SMS/1.0',
+            'Content-Type': 'application/json',
+        }
         r = requests.post(
             'https://api.yay.com/voip/text-message/campaign',
-            auth=(user, pwd),
+            headers=headers,
             json={'from': from_num, 'messages': [{'to': to_num, 'body': message}]},
             timeout=10
         )
@@ -108,7 +115,7 @@ def call_ended():
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'tracked_numbers': len(sms_sent), 'time': datetime.utcnow().isoformat()}), 200
+    return jsonify({'status': 'ok', 'tracked': len(sms_sent), 'time': datetime.utcnow().isoformat()}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
