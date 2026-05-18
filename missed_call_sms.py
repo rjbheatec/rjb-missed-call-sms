@@ -68,7 +68,11 @@ def send_sms(from_num, to_num, message):
                 'X-Auth-Password': pwd,
                 'Content-Type': 'application/json',
             },
-            json={'from': from_num, 'messages': [{'to': to_num, 'body': message}]},
+            json={
+                'campaign_name': 'Inbound SMS ' + datetime.utcnow().strftime('%Y%m%d%H%M%S'),
+                'from': from_num,
+                'messages': [{'to': to_num, 'body': message}]
+            },
             timeout=10
         )
         if r.status_code in (200, 201):
