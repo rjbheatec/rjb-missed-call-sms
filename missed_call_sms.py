@@ -75,7 +75,7 @@ def lookup_caller_ids():
         if isinstance(items, dict) and 'result' in items:
             items = items['result']
         for item in items:
-            num = item.get('phone_number') or item.get('number') or item.get('cli')
+            num = item.get('cli_display') or item.get('cli_name') or item.get('phone_number') or item.get('number')
             uuid = item.get('uuid') or item.get('id')
             if not num or not uuid:
                 continue
