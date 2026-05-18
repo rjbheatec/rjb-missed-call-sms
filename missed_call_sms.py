@@ -173,6 +173,56 @@ def debug():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/test_send', methods=['GET'])
+def test_send():
+    """Manual test: try sending an SMS using a specific caller_id_uuid.
+    Usage: /test_send?uuid=<caller_id_uuid>&to=<phone_number>
+    Returns the raw request + response so we can see exactly what Yay says.
+    """
+    uuid = request.args.get('uuid', '').strip()
+    to = request.args.get('to', '').strip()
+    if not uuid or not to:
+        return jsonify({
+            'error': 'usage',
+            'example': '/test_send?uuid=85bfe409-a21e-4233-a9f3-661c07cbfabb&to=+447xxxxxxxxx',
+            'available_uuids': {k: v['caller_id_uuid'] for k, v in NUMBERS.items()},
+        }), 400
+    to_clean = '+' + ''.join(c for c in to if c.isdigit())
+    payload = {
+        'is_draft': False,
+        'campaign_name': f'Test send {datetime.utcnow().strftime("%Y%m%d-%H%M%S")}',
+        'message_content': 'API test message — please ignore',
+        'caller_id_uuid': uuid,
+        'recipients': [{'phone_number': to_clean}],
+    }
+    try:
+        r = requests.post(
+            f'{YAY_BASE}/voip/text-message/campaign',
+            headers=YAY_HEADERS,
+            json=payload,
+            timeout=15,
+        )
+        return jsonify({
+            'request': {
+                'url': f'{YAY_BASE}/voip/text-message/campaign',
+                'method': 'POST',
+                'headers_used': {
+                    'X-Auth-Reseller': YAY_HEADERS.get('X-Auth-Reseller', '')[:3] + '***',
+                    'X-Auth-User': YAY_HEADERS.get('X-Auth-User', '')[:4] + '***',
+                    'X-Auth-Password': '***',
+                    'User-Agent': YAY_HEADERS.get('User-Agent'),
+                    'Content-Type': YAY_HEADERS.get('Content-Type'),
+                },
+                'payload': payload,
+            },
+            'response': {
+                'status': r.status_code,
+                'body': r.text[:3000],
+            },
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """ServiceM8 / Kira webhook on inbound/missed call.
