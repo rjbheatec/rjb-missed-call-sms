@@ -66,7 +66,6 @@ def send_sms(from_num, to_num, message):
                 'X-Auth-Reseller': reseller,
                 'X-Auth-User': user,
                 'X-Auth-Password': pwd,
-                'User-Agent': 'RJBHeating-SMS/1.0',
                 'Content-Type': 'application/json',
             },
             json={'from': from_num, 'messages': [{'to': to_num, 'body': message}]},
