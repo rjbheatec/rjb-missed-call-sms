@@ -199,12 +199,13 @@ def webhook():
     from_clean = '+' + ''.join(c for c in from_number if c.isdigit())
     to_clean = '+' + ''.join(c for c in to_number if c.isdigit())
 
-    # dedupe — don't text same caller twice within 30 days
+    # dedupe — don't text same caller for same brand twice within 30 days
     now = time.time()
-    last = sms_sent.get(from_clean, 0)
+    dedupe_key = (from_clean, to_clean)
+    last = sms_sent.get(dedupe_key, 0)
     if now - last < THIRTY_DAYS:
-        logger.info(f'skip {from_clean} — texted {int((now-last)/3600)}h ago')
-        return jsonify({'status': 'skipped', 'reason': 'recently texted'}), 200
+        logger.info(f'skip {from_clean} for {to_clean} — texted {int((now-last)/3600)}h ago')
+        return jsonify({'status': 'skipped', 'reason': 'recently texted for this brand'}), 200
 
     # find which brand the customer called
     if to_clean not in NUMBERS:
@@ -216,10 +217,15 @@ def webhook():
     # lazy-load caller IDs once
     if not brand.get('caller_id_uuid'):
         lookup_caller_ids()
-    caller_id_uuid = brand.get('caller_id_uuid')
+
+    # SEND_FROM_UUID: force all sends through Birmingham (only number with supports_sms=true)
+    # Once Yay enables SMS on the other numbers, we can switch back to brand.get('caller_id_uuid')
+    SEND_FROM_UUID = NUMBERS.get('+441216306543', {}).get('caller_id_uuid')
+    caller_id_uuid = SEND_FROM_UUID or brand.get('caller_id_uuid')
     if not caller_id_uuid:
-        logger.error(f'no caller_id_uuid for {to_clean} after lookup')
+        logger.error(f'no caller_id_uuid available')
         return jsonify({'error': 'caller_id lookup failed'}), 500
+    logger.info(f'sending from Birmingham UUID for inbound {to_clean}')
 
     # compose message — shorter version for brands with longer names/URLs
     if brand.get('short_sms'):
@@ -238,7 +244,7 @@ def webhook():
 
     ok, info = send_sms_via_yay(caller_id_uuid, from_clean, message)
     if ok:
-        sms_sent[from_clean] = now
+        sms_sent[dedupe_key] = now
         return jsonify({'status': 'sent', 'campaign_uuid': info}), 200
     return jsonify({'status': 'failed', 'error': info}), 500
 
