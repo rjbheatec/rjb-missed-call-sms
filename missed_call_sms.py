@@ -221,10 +221,10 @@ def webhook():
 
     # compose message
     message = (
-        f"Hi, thanks for getting in touch with {brand['brand']}. "
-        f"View our pricing or book online at {brand['website']} "
-        f"or message us on WhatsApp: https://wa.me/{WHATSAPP_NUMBER} "
-        f"— please do not reply to this number."
+        f"Hi, thanks for contacting {brand['brand']}. "
+        f"We'll be in touch shortly. Want to chat? "
+        f"WhatsApp: https://wa.me/{WHATSAPP_NUMBER} "
+        f"or see pricing at {brand['website']}"
     )
 
     ok, info = send_sms_via_yay(caller_id_uuid, from_clean, message)
