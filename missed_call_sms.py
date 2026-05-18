@@ -186,6 +186,13 @@ def webhook():
     if not from_number or not to_number:
         return jsonify({'error': 'missing from/to'}), 400
 
+    # Skip outbound calls — only SMS inbound customer calls
+    from_type = data.get('from_type', '')
+    call_type = data.get('call_type', '')
+    if from_type == 'sipuser' or call_type == 'outbound':
+        logger.info(f'skip outbound: from_type={from_type} call_type={call_type}')
+        return jsonify({'status': 'skipped', 'reason': 'outbound call'}), 200
+
     # normalise
     from_clean = '+' + ''.join(c for c in from_number if c.isdigit())
     to_clean = '+' + ''.join(c for c in to_number if c.isdigit())
