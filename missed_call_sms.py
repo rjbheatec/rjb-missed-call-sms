@@ -60,6 +60,15 @@ def send_sms(from_num, to_num, message):
         logger.error('Yay.com credentials missing')
         return False
     try:
+        payload = {
+            'campaign_name': 'Inbound ' + datetime.utcnow().strftime('%Y%m%d%H%M%S'),
+            'from': from_num,
+            'messages': [{
+                'to': to_num,
+                'message_content': message
+            }]
+        }
+        logger.info('Sending payload: ' + json.dumps(payload))
         r = requests.post(
             'https://api.yay.com/voip/text-message/campaign',
             headers={
@@ -68,13 +77,10 @@ def send_sms(from_num, to_num, message):
                 'X-Auth-Password': pwd,
                 'Content-Type': 'application/json',
             },
-            json={
-                'campaign_name': 'Inbound SMS ' + datetime.utcnow().strftime('%Y%m%d%H%M%S'),
-                'from': from_num,
-                'messages': [{'to': to_num, 'body': message}]
-            },
+            json=payload,
             timeout=10
         )
+        logger.info('Response ' + str(r.status_code) + ': ' + r.text[:300])
         if r.status_code in (200, 201):
             logger.info('SMS sent to ' + to_num)
             return True
