@@ -127,17 +127,8 @@ def send_sms_via_yay(caller_id_uuid, to_number, message):
             logger.error(f'no uuid in campaign response: {body}')
             return False, 'no uuid in response'
 
-        # Step 2: confirm to actually queue for sending
-        c = requests.post(
-            f'{YAY_BASE}/voip/text-message/campaign/{campaign_uuid}/confirm',
-            headers=YAY_HEADERS,
-            timeout=15,
-        )
-        logger.info(f'campaign confirm status={c.status_code}')
-        if c.status_code not in (200, 201, 204):
-            logger.error(f'confirm failed: {c.text[:500]}')
-            return False, f'confirm {c.status_code}: {c.text[:200]}'
-
+        # is_draft=false auto-schedules — no /confirm step needed
+        # (confirming a non-draft campaign returns 404)
         return True, campaign_uuid
     except Exception as e:
         logger.exception(f'send_sms_via_yay error: {e}')
