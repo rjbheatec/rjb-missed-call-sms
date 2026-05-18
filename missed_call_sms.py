@@ -79,11 +79,17 @@ def lookup_caller_ids():
             uuid = item.get('uuid') or item.get('id')
             if not num or not uuid:
                 continue
-            # normalise leading + and stray spaces
-            num_clean = '+' + ''.join(c for c in num if c.isdigit())
-            if num_clean in NUMBERS:
-                NUMBERS[num_clean]['caller_id_uuid'] = uuid
-                logger.info(f"matched {num_clean} -> {uuid}")
+            # normalise: match on last 10 digits (covers +44/0044/0 formats)
+            digits_only = ''.join(c for c in num if c.isdigit())
+            last10 = digits_only[-10:] if len(digits_only) >= 10 else digits_only
+            logger.info(f"yay returned num={num} -> digits={digits_only} last10={last10} uuid={uuid}")
+            for key in NUMBERS:
+                key_digits = ''.join(c for c in key if c.isdigit())
+                key_last10 = key_digits[-10:] if len(key_digits) >= 10 else key_digits
+                if key_last10 == last10:
+                    NUMBERS[key]['caller_id_uuid'] = uuid
+                    logger.info(f"matched {key} -> {uuid}")
+                    break
         _caller_ids_loaded = True
         return True
     except Exception as e:
@@ -153,6 +159,17 @@ def refresh():
     ok = lookup_caller_ids()
     return jsonify({'refreshed': ok, 'numbers': {k: v['caller_id_uuid'] for k, v in NUMBERS.items()}})
 
+
+@app.route('/debug', methods=['GET'])
+def debug():
+    try:
+        r = requests.get(f'{YAY_BASE}/voip/caller-id', headers=YAY_HEADERS, timeout=10)
+        return jsonify({
+            'status': r.status_code,
+            'raw': r.text[:3000],
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
