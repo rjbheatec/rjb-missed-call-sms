@@ -36,6 +36,7 @@ NUMBERS = {
         'brand': 'Northampton Boiler Service',
         'website': 'northamptonboilerservice.co.uk',
         'caller_id_uuid': None,
+        'short_sms': True,
     },
     '+442475906543': {
         'name': 'Coventry',
@@ -43,6 +44,7 @@ NUMBERS = {
         'brand': 'Coventry Boiler Service',
         'website': 'coventryboilerservice.co.uk',
         'caller_id_uuid': None,
+        'short_sms': True,
     },
 }
 
@@ -219,13 +221,20 @@ def webhook():
         logger.error(f'no caller_id_uuid for {to_clean} after lookup')
         return jsonify({'error': 'caller_id lookup failed'}), 500
 
-    # compose message
-    message = (
-        f"Hi, thanks for contacting {brand['brand']}. "
-        f"We'll be in touch shortly. Want to chat? "
-        f"WhatsApp: https://wa.me/{WHATSAPP_NUMBER} "
-        f"or see pricing at {brand['website']}"
-    )
+    # compose message — shorter version for brands with longer names/URLs
+    if brand.get('short_sms'):
+        message = (
+            f"Thanks for contacting {brand['brand']}. "
+            f"WhatsApp us: https://wa.me/{WHATSAPP_NUMBER} "
+            f"or visit {brand['website']}"
+        )
+    else:
+        message = (
+            f"Hi, thanks for contacting {brand['brand']}. "
+            f"We'll be in touch shortly. Want to chat? "
+            f"WhatsApp: https://wa.me/{WHATSAPP_NUMBER} "
+            f"or see pricing at {brand['website']}"
+        )
 
     ok, info = send_sms_via_yay(caller_id_uuid, from_clean, message)
     if ok:
