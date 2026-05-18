@@ -267,15 +267,10 @@ def webhook():
     # lazy-load caller IDs once
     if not brand.get('caller_id_uuid'):
         lookup_caller_ids()
-
-    # SEND_FROM_UUID: force all sends through Birmingham (only number with supports_sms=true)
-    # Once Yay enables SMS on the other numbers, we can switch back to brand.get('caller_id_uuid')
-    SEND_FROM_UUID = NUMBERS.get('+441216306543', {}).get('caller_id_uuid')
-    caller_id_uuid = SEND_FROM_UUID or brand.get('caller_id_uuid')
+    caller_id_uuid = brand.get('caller_id_uuid')
     if not caller_id_uuid:
-        logger.error(f'no caller_id_uuid available')
+        logger.error(f'no caller_id_uuid for {to_clean} after lookup')
         return jsonify({'error': 'caller_id lookup failed'}), 500
-    logger.info(f'sending from Birmingham UUID for inbound {to_clean}')
 
     # compose message — shorter version for brands with longer names/URLs
     if brand.get('short_sms'):
